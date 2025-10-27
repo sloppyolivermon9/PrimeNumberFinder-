@@ -1,55 +1,4 @@
-// PrimeNumberFinder.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <list>
-#include <Windows.h>
-#include <cmath>
-using namespace std;
-
-//Global Variables
-list<int> primesFound;
-int currentNum;
-
-bool isPrime(int num) {
-    if (num < 2) {
-        return false; // Numbers less than 2 are not prime
-    }
-
-    // Check divisibility from 2 up to the square root of num
-    for (int i = 2; i <= sqrt(num); ++i) {
-        if (num % i == 0) {
-            return false; // Found a factor, not prime
-        }
-    }
-
-    return true; // No factors found, prime
-}
-
-/* OLD FUNCTION TO FIND PRIMES
-bool isPrime(int num) { //determines if num is prime
-    for (int i = 2; i < num; i++) {
-        if ((num % i) == 0) {
-            return false;
-        }
-    }
-    return true;
-}
-*/
-
-int getLastNum() { //gets number from .txt so it can resume progress
-    const string file = "currentNum.txt";
-    string output = "";
-    ifstream f(file);
-
-    if (!f.is_open()) {
-        ofstream f(file);
-        f << "2";
-        f.close();
-        ifstream f2(file);
-        getline(f2, output);
         f2.close();
         return stoi(output);
     }
@@ -66,12 +15,12 @@ void storeNewPrimes() { //stores primes found into file, if it doesn't exist it 
     const string file = "primesFound.txt";
     ofstream f(file, ios_base::app);
 
-    for (const int& prime : primesFound) {
+    for (int prime = 0; prime < 100000; prime++) {
         f << to_string(prime) << "\n";
     }
     f.flush();
     f.close();
-    primesFound.clear();
+    currentPrimes = 0;
 }
 
 void storeLatestNum(string num) { //stores number to work on when program is launched next
@@ -89,9 +38,10 @@ void findPrimes() { //function to pull together main parts of program
         string numToStore = to_string(currentNum);
         if (isPrime(currentNum)) {
             cout << currentNum << " is a prime number!\n";
-            primesFound.push_back(currentNum);
+            primesFound[currentPrimes] = currentNum;
+            currentPrimes++;
         }
-        if (primesFound.size() == 100000) {
+        if (currentPrimes == 100000) {
             storeNewPrimes();
         }
         currentNum++;
@@ -125,14 +75,3 @@ int main()
     findPrimes();
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
