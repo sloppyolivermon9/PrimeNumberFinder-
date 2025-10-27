@@ -3,6 +3,7 @@
 #include <string>
 #include <Windows.h>
 #include <cmath>
+#include <thread>
 
 using std::cout;
 using std::string;
@@ -13,16 +14,14 @@ using std::ifstream;
 using std::ios_base;
 using std::to_string;
 
+using std::thread;
+
 //Global Variables
 unsigned long long int primesFound[100000];
 unsigned long long int currentNum;
 unsigned int currentPrimes = 0;
 
 bool isPrime(int num) {
-    if (num < 2) {
-        return false; // Numbers less than 2 are not prime
-    }
-
     // Check divisibility from 2 up to the square root of num
     for (unsigned long long int i = 2; i <= sqrt(num); ++i) {
         if (num % i == 0) {
@@ -82,7 +81,7 @@ void findPrimes() { //function to pull together main parts of program
     while (true) {
         string numToStore = to_string(currentNum);
         if (isPrime(currentNum)) {
-            cout << currentNum << " is a prime number!\n";
+            cout << currentNum << " is a prime number!" << endl;
             primesFound[currentPrimes] = currentNum;
             currentPrimes++;
         }
