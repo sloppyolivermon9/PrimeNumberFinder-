@@ -18,7 +18,7 @@ unsigned long long int primesFound[100000];
 unsigned long long int currentNum;
 unsigned int currentPrimes = 0;
 
-bool isPrime(int num) {
+bool isPrime(unsigned long long int num) {
     if (num < 2) {
         return false; // Numbers less than 2 are not prime
     }
@@ -120,3 +120,4 @@ int main()
     findPrimes();
     return 0;
 }
+
