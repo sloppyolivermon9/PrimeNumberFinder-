@@ -61,7 +61,7 @@ void storeNewPrimes() { //stores primes found into file, if it doesn't exist it 
     ofstream f(file, ios_base::app);
 
     for (int prime = 0; prime < 100000; prime++) {
-        f << to_string(prime) << "\n";
+        f << to_string(primesFound[prime]) << "\n";
     }
     f.flush();
     f.close();
@@ -120,4 +120,5 @@ int main()
     findPrimes();
     return 0;
 }
+
 
