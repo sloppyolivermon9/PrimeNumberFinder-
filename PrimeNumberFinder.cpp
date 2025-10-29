@@ -4,8 +4,10 @@
 #include <Windows.h>
 #include <cmath>
 #include <thread>
+#include <mutex>
 
 using std::cout;
+using std::cin;
 using std::string;
 using std::endl;
 
@@ -15,21 +17,104 @@ using std::ios_base;
 using std::to_string;
 
 using std::thread;
+using std::mutex;
 
 //Global Variables
-unsigned long long int primesFound[100000];
-unsigned long long int currentNum;
-unsigned int currentPrimes = 0;
+unsigned long long int primePool[20000];
+unsigned short int primePoolNumber; //What index to add prime number?
 
-bool isPrime(int num) {
-    // Check divisibility from 2 up to the square root of num
+unsigned long long int nextNum;
+
+thread primeCalculators[65535];
+bool killThreads = false;
+unsigned short int threadNum;
+
+//Ensures threads don't edit variables at same time
+mutex mtx;
+
+bool isPrime(unsigned long long int num) {
     for (unsigned long long int i = 2; i <= sqrt(num); ++i) {
         if (num % i == 0) {
             return false; // Found a factor, not prime
         }
     }
 
-    return true; // No factors found, prime
+    return true;
+}
+
+void findPrime() {
+    //cout << endl << "Prepping to lock!" << endl;
+    mtx.lock();
+    //cout << "Locked" << endl;
+    unsigned long long int numToWorkOn = nextNum;
+    nextNum++;
+    //cout << "Prepping to unlock!" << endl;
+    mtx.unlock();
+
+    while (!killThreads) {
+        if (isPrime(numToWorkOn)) {
+            mtx.lock();
+            /*if (primePoolNumber > 15000) {
+                cout << "Out of range!" << endl;
+            }
+            else {
+                cout << primePoolNumber << endl;
+            }*/
+            primePool[primePoolNumber] = numToWorkOn;
+            cout << primePool[primePoolNumber] << " is a prime number!" << endl;
+            primePoolNumber++;
+            mtx.unlock();
+        }
+
+        mtx.lock();
+        numToWorkOn = nextNum;
+        nextNum++;
+        mtx.unlock();
+    }
+}
+
+void storeLatestNum(string num) { //stores number to work on when program is launched next
+    const string file = "currentNum.txt";
+    ofstream f(file);
+
+    f << num;
+    f.flush();
+    f.close();
+}
+
+void storeNewPrimes() { //stores primes found into file, if it doesn't exist it creates a new file
+    const string file = "primesFound.txt";
+    ofstream f(file, ios_base::app);
+
+    for (unsigned long int prime = 0; prime < 20000; prime++) {
+        f << to_string(primePool[prime]) << "\n";
+    }
+    f.flush();
+    f.close();
+    primePoolNumber = 0;
+}
+
+void saveWork() {
+    killThreads = true;
+    for (unsigned short int i = 0; i < threadNum; i++) {
+        primeCalculators[i].join();
+    }
+
+    mtx.lock();
+    storeLatestNum(to_string(nextNum));
+    storeNewPrimes();
+    mtx.unlock();
+}
+
+void saveWorkThread() {
+    while (true) {
+        if (primePoolNumber > 10000) {
+            mtx.lock();
+            storeLatestNum(to_string(nextNum));
+            storeNewPrimes();
+            mtx.unlock();
+        }
+    }
 }
 
 int getLastNum() { //gets number from .txt so it can resume progress
@@ -55,48 +140,6 @@ int getLastNum() { //gets number from .txt so it can resume progress
     return stoi(output);
 }
 
-void storeNewPrimes() { //stores primes found into file, if it doesn't exist it creates a new file
-    const string file = "primesFound.txt";
-    ofstream f(file, ios_base::app);
-
-    for (int prime = 0; prime < 100000; prime++) {
-        f << to_string(prime) << "\n";
-    }
-    f.flush();
-    f.close();
-    currentPrimes = 0;
-}
-
-void storeLatestNum(string num) { //stores number to work on when program is launched next
-    const string file = "currentNum.txt";
-    ofstream f(file);
-
-    f << num;
-    f.flush();
-    f.close();
-}
-
-void findPrimes() { //function to pull together main parts of program
-    currentNum = getLastNum();
-    while (true) {
-        string numToStore = to_string(currentNum);
-        if (isPrime(currentNum)) {
-            cout << currentNum << " is a prime number!" << endl;
-            primesFound[currentPrimes] = currentNum;
-            currentPrimes++;
-        }
-        if (currentPrimes == 100000) {
-            storeNewPrimes();
-        }
-        currentNum++;
-    }
-}
-
-void saveWork() { //called to save stuff to files
-    storeLatestNum(to_string(currentNum));
-    storeNewPrimes();
-}
-
 //saves work when program is closed
 BOOL CtrlHandler(DWORD ctrlType) {
     switch (ctrlType) {
@@ -116,6 +159,18 @@ BOOL CtrlHandler(DWORD ctrlType) {
 int main()
 {
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE); //sets up event for when program is closed
-    findPrimes();
+    
+    nextNum = getLastNum();
+
+    cout << "How many threads would you like to work on this?: ";
+    cin >> threadNum;
+
+    thread saveThread(saveWorkThread);
+
+    for (unsigned short int i = 0; i < threadNum; i++) {
+        cout << "thread created!" << endl;
+        primeCalculators[i] = thread(findPrime);
+    }
+
     return 0;
 }
